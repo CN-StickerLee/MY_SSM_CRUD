@@ -171,7 +171,7 @@
     <div class="row">
         <div class="col-md-3 col-md-offset-9">
             <button class="btn btn-info" id="emp_add_modal_btn">新增</button>
-            <button class="btn btn-danger">删除</button>
+            <button class="btn btn-danger" id="emp_delete_batch_btn">删除</button>
         </div>
     </div>
 
@@ -759,7 +759,7 @@
                     url:"${APP_PATH}/emp/" + empId,
                     type:"DELETE",
                     success:function (res) {
-                        //alert(res.msg);
+                        alert(res.msg);
 
                         //回到本页
                         to_page(currentPage);
@@ -788,7 +788,7 @@
         })
 
 
-        //    为批量删除绑定单击事件
+        //    为批量删除绑定单击事件  批量删除：删除当前选中的所有员工信息
         $("#emp_delete_batch_btn").click(function () {
 
             var empNames = "";
@@ -796,14 +796,14 @@
 
             //遍历每一个被选中的复选框
             $.each($(".check_item:checked"), function () {
-                // 获取要删除的员工姓名
+                // 获取要删除的员工姓名  组装员工姓名字符串
                 empNames += $(this).parents("tr").find("td:eq(2)").text() + "\n";
 
-                //获取要删除的员工的id
+                //获取要删除的员工的id  组装员工id字符串
                 del_idstr += $(this).parents("tr").find("td:eq(1)").text() + "-";
             });
 
-            //去除多余的-
+            //去除多余的 -    字符串中直接少截取最后一个-即可
             del_idstr = del_idstr.substring(0, del_idstr.length - 1);
 
             if(confirm("确认删除 \n" + empNames + " 吗？")){

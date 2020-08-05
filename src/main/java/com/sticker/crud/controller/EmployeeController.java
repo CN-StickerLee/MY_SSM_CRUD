@@ -29,6 +29,8 @@ public class EmployeeController {
      * 按照员工id删除
      * 单个删除和批量删除二合一
      * 如果是批量删除，每个id之间用-分隔开
+     * 批量删除：1-2-3
+     * 单个删除：1
      */
     @ResponseBody
     @RequestMapping(value = "/emp/{ids}", method = RequestMethod.DELETE)
