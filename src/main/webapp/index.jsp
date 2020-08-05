@@ -351,13 +351,25 @@
 
 //==========================================新增==================================================================
 
+        //清空表单内容及样式
+        function reset_form(ele){
+            //清空表单内容，取出dom对象，调用reset()方法
+            $(ele)[0].reset();
+            //清空表单样式
+            $(ele).find("*").removeClass("has-error has-success");
+            //清空提示信息
+            $(ele).find(".help-block").text("");
+        }
+
         //点击新增按钮，弹出模态框
         $("#emp_add_modal_btn").click(function () {
             //清除表单数据（表单重置，包括表单数据以及表单样式），防止出现点击保存之后再次点击新增，跳出的模态框还是保存上次添加的记录，避免重复添加。
             //取出dom对象，调用reset()方法
-            // // $("#empAddModal form")[0].reset();
-            // reset_form("#empAddModal form");
-            //
+            $("#empAddModal form")[0].reset();
+
+            //清空表单内容及样式 作用：点击新增按钮后，去除上一次表单的内容及样式
+            reset_form("#empAddModal form");
+
             //在弹出模态框之前，需要发送ajax请求，查询部门信息，显示在模态框的下拉列表中
             getDepts("#empAddModal select");
 
@@ -404,9 +416,16 @@
         //模态框中点击保存员工信息
         //模态框中填写的表单数据提交给服务器进行保存
         $("#emp_save_btn").click(function () {
-            //1.需要先对提交给服务器的数据进行校验
-            //如果校验失败，直接返回
+            //1.需要先对提交给服务器的数据格式进行校验,并且判断用户名重复校验是否成功
+            //    只要有一个校验失败，就无法保存，直接返回
+            //if(!validate_add_form() || !emailStatus){
+
+            //数据格式校验
             if(!validate_add_form()){
+                return false;
+            }
+            //用户名重复校验
+            if($(this).attr("ajax-value") == "error"){
                 return false;
             }
             //2.发送ajax请求保存员工信息
@@ -451,7 +470,7 @@
                 //给empName_add_input所在标签的下一个span标签加上文本
                 // $("#empName_add_input").next("span").text("用户名必须是6-16位数字，字母或者_-，也可以是2-5位中文组成");
 
-                show_validate_msg("#empName_add_input", "error", "用户名必须是6-16位数字，字母或者_-，也可以是2-5位中文组成");
+                show_validate_msg("#empName_add_input", "error", "前端：用户名必须是6-16位数字，字母或者_-，也可以是2-5位中文组成");
                 return false;
             }else{
                 //成功
@@ -506,6 +525,50 @@
                 $(ele).next("span").text(msg);
             }
         }
+
+        //设置email的校验状态
+        var emailStatus;
+
+        //即时校验用户名是否可用
+        //当用户名的文本框内容发生改变后，发送ajax请求校验用户名是否可用
+        //change:失去焦点的触发事件？  输入框内容发生改变触发事件？
+        $("#empName_add_input").change(function () {
+            //  输入框中的值
+            var empName = this.value;
+
+            $.ajax({
+                url:"${APP_PATH}/checkuser",
+                data:"empName=" + empName,
+                type:"POST",
+                success:function (res) {
+                    if(res.code == 100){
+                        //成功
+                        show_validate_msg("#empName_add_input", "success", "用户名可用");
+                        //    如果用户名可用，给保存按钮一个自定义的属性ajax-value，并赋值为“success”
+                        //    在点击按钮事件中先判断该属性的值是success还是error,是success才接着发送保存数据的ajax请求
+                        $("#emp_save_btn").attr("ajax-value", "success");
+                    }else{
+                        //失败  此时需要使保存按钮的点击事件失效
+                        show_validate_msg("#empName_add_input", "error", res.extend.va_msg);
+                        //    如果用户名不可用，给保存按钮一个自定义的属性ajax-value，并赋值为“error”
+                        //    在点击按钮事件中先判断该属性的值是success还是error,是success才接着发送保存数据的ajax请求
+                        $("#emp_save_btn").attr("ajax-value", "error");
+                    }
+                }
+            })
+        })
+
+        //即时校验邮箱是否可用
+        $("#email_add_input").change(function () {
+            if(!validate_add_form()){
+                show_validate_msg("#email_add_input", "error", "邮箱格式错误");
+                emailStatus = false;
+            }else{
+                show_validate_msg("#email_add_input", "success","");
+                emailStatus = true;
+            }
+        })
+
 
     </script>
 </body>

@@ -19,6 +19,36 @@ public class EmployeeController {
     EmployeeService employeeService;
 
     /**
+     * 检验用户名是否可用
+     * @param empName
+     * @return
+     */
+    @ResponseBody
+    //为什么这里不需要说明method = RequestMethod.POST
+    //这里POST和GET都行，和REST没关系？
+    @RequestMapping("/checkuser")
+    //@RequestParam("empName") 明确告诉SpringMVC要取出请求参数empName的值
+    public Msg checkUser(@RequestParam("empName") String empName) {
+
+        // 先进行用户名格式校验，判断用户名是否是合法的表达式，再判断是否重复
+        //注意 “/(^[a-zA-Z0-9_-]{6,16}$)|(^[\u2E80-\u9FFF]{2,5})/” 里面的/在Java中是不需要的，它是JS正则表达式格式需要的。
+        String regx = "(^[a-zA-Z0-9_-]{6,16}$)|(^[\\u2E80-\\u9FFF]{2,5})";
+        // String自带的matches
+        if (!empName.matches(regx)) {
+            return Msg.fail().add("va_msg", "用户名必须是6-16位数字，字母或者_-，也可以是2-5位中文组成");
+        } else {
+
+            //数据库用户名重复校验
+            boolean b = employeeService.checkUser(empName);
+            if (b) {
+                return Msg.success();
+            } else {
+                return Msg.fail().add("va_msg", "用户名不可用");
+            }
+        }
+    }
+
+    /**
      * 保存员工信息
      * @param employee
      * @return
