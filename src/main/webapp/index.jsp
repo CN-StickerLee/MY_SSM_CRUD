@@ -90,16 +90,33 @@
     <script type="text/javascript">
 
         //1、页面加载完成以后，直接发送一个ajax请求，获取分页数据
+
+        //总记录数，用于跳转到最后一页。
+        //由于有了分页插件，当跳转页面大于总页面数的时候，就会跳转到最后一页
+        var totalRecordCount;
+        //当前页数，用于修改完员工信息之后跳转到本页面。
+        var currentPage;
+
+        $(function () {
+            //去首页
+            to_page(1);
+
+        });
+
+        // 实现页面跳转，想跳到第几页就传参数：把Ajax请求抽取为一个方法
         // data的两种写法:注意变量和字符串的写法区别
         // data:{action:"ajaxAddItem",id:bookId},
         // data:"action=ajaxAddItem&id="+bookId,
-        $(function () {
+        function to_page(page) {
+            //每次页面跳转时，都将全选/全不选设置为false
+            $("#check_all").prop("checked", false);
+
             $.ajax({
                 url:"${APP_PATH}/emps",
-                data:"pn=1",
+                data:"pn=" + page,
                 type:"GET",
                 success:function (res) {
-                    //console.log(res);
+                    // console.log(res);
                     // 1、解析并显示员工数据
                     build_emps_table(res);
                     // 2、解析并显示分页信息
@@ -108,7 +125,7 @@
                     build_page_nav(res);
                 }
             });
-        });
+        }
 
         // 1、解析并显示员工数据
         function build_emps_table(res) {
@@ -186,21 +203,22 @@
         }
 
         // 3、解析并显示分页条
+        // 分页基本照着BootStrp的分页进行拼接，参考地址：https://v3.bootcss.com/components/#pagination
         function build_page_nav(res) {
             //清空分页条，如果不清空，当页面刷新的时候新的数据不会覆盖旧数据，造成页面混乱
             $("#page_nav_area").empty();
 
+            //分页条的最外层元素
             var ul = $("<ul></ul>").addClass("pagination");
 
-
             //构建首页和上一页的标签
-            var firstPageLi = $("<li></li>").append($("<a></a>").append("首页").attr("href", "#"));
+            var firstPageLi = $("<li></li>").append($("<a></a>").append("首页").attr("href","#"));
             var prePageLi = $("<li></li>").append($("<a></a>").append("&laquo;"));
-            //如果没有上一页，就设置首页和上一页的按钮不可用
-            if (res.extend.pageInfo.hasPreviousPage == false) {
+            //如果没有上一页，就设置首页和上一页的按钮不可用 被禁用了，就不需要绑定单击事件
+            if(res.extend.pageInfo.hasPreviousPage == false){
                 firstPageLi.addClass("disabled");
                 prePageLi.addClass("disabled");
-            } else {
+            }else{
                 //如果有上一页，才绑定单击事件
                 //为首页标签添加单击事件
                 firstPageLi.click(function () {
@@ -211,7 +229,60 @@
                     to_page(res.extend.pageInfo.pageNum - 1);
                 });
             }
+
+
+            //下一页和尾页
+            var nextPageLi = $("<li></li>").append($("<a></a>").append("&raquo;"));
+            var lastPageLi = $("<li></li>").append($("<a></a>").append("尾页").attr("href","#"));
+            //如果没有下一页，就设置下一页和尾页按钮不可用
+            if(res.extend.pageInfo.hasNextPage == false){
+                nextPageLi.addClass("disabled");
+                lastPageLi.addClass("disabled");
+            }else{
+                //如果有下一页，才绑定单击事件
+                //为下一页标签添加单击事件
+                nextPageLi.click(function () {
+                    to_page(res.extend.pageInfo.pageNum + 1);
+                });
+                //为尾页标签添加单击事件
+                lastPageLi.click(function () {
+                    to_page(res.extend.pageInfo.pages);
+                });
+            }
+
+
+            //添加首页和前一页到ul标签中
+            ul.append(firstPageLi).append(prePageLi);
+
+            //遍历，给ul中添加页码
+            $.each(res.extend.pageInfo.navigatepageNums, function (index, item) {
+
+                var numLi = $("<li></li>").append($("<a></a>").append(item));
+
+                //绑定单击事件，点击页码进行跳转
+                //重复点击按钮不再去响应显示相同数据怎么做，在AJAX中要做吗？
+                //可以不做，因为AJAX局部响应
+                numLi.click(function () {
+                    to_page(item);
+                })
+
+                //当前页数高亮显示
+                if(res.extend.pageInfo.pageNum == item){
+                    numLi.addClass("active");
+                }
+
+                //添加页码到ul标签中
+                ul.append(numLi);
+            })
+
+            //添加下一页和尾页到ul标签中
+            ul.append(nextPageLi).append(lastPageLi);
+
+            //把ul添加到nav标签中
+            var navEle = $("<nav></nav>").append(ul).appendTo("#page_nav_area");
+
         }
+
 
 
     </script>
