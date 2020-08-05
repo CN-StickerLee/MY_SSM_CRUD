@@ -29,7 +29,71 @@
 
 </head>
 <body>
-<%--搭建显示页面--%>
+
+<%------------------------------ 员工添加的模态框 ------------------------------%>
+<div class="modal fade" id="empAddModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">新增员工</h4>
+            </div>
+            <div class="modal-body">
+
+                <%------------------------------ 表单 ------------------------------%>
+                <form class="form-horizontal">
+                    <%-- empName --%>
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">empName</label>
+                        <div class="col-sm-10">
+<%--                            下面的name属性和JavaBean中的属性名对应--%>
+                            <input type="text" name="empName" class="form-control" id="empName_add_input" placeholder="empName">
+                            <span class="help-block"></span>
+                        </div>
+                    </div>
+                    <%-- email --%>
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">email</label>
+                        <div class="col-sm-10">
+                            <input type="text" name="email" class="form-control" id="email_add_input" placeholder="email@gmail.com">
+                            <span class="help-block"></span>
+                        </div>
+                    </div>
+                    <%-- gender --%>
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">gender</label>
+                        <div class="col-sm-10">
+                            <%-- 内联单选 --%>
+                            <label class="radio-inline">
+                                <input type="radio" name="gender" id="gender1_add_input" value="M" checked="checked"> 男
+                            </label>
+                            <label class="radio-inline">
+                                <input type="radio" name="gender" id="gender2_add_input" value="F"> 女
+                            </label>
+                        </div>
+                    </div>
+                    <%-- department --%>
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">deptName</label>
+                        <div class="col-sm-4">
+                            <%-- 下拉列表，部门选项只要提交部门id即可 --%>
+                            <select class="form-control" name="dId" id="dept_select"></select>
+                        </div>
+                    </div>
+                </form>
+                <%----------------------------------------------------------------%>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="emp_save_btn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+<%----------------------------------------------------------------------------%>
+
+<%---------------------------------搭建显示页面--------------------------------%>
 <div class="container">
     <%--    标题--%>
     <div class="row">
@@ -41,7 +105,7 @@
     <%--    新增/删除 按钮--%>
     <div class="row">
         <div class="col-md-3 col-md-offset-9">
-            <button class="btn btn-info">新增</button>
+            <button class="btn btn-info" id="emp_add_modal_btn">新增</button>
             <button class="btn btn-danger">删除</button>
         </div>
     </div>
@@ -126,6 +190,8 @@
                 }
             });
         }
+
+//==========================================查询==================================================================
 
         // 1、解析并显示员工数据
         function build_emps_table(res) {
@@ -283,7 +349,64 @@
 
         }
 
+//==========================================新增==================================================================
 
+        //点击新增按钮，弹出模态框
+        $("#emp_add_modal_btn").click(function () {
+            //清除表单数据（表单重置，包括表单数据以及表单样式），防止出现点击保存之后再次点击新增，跳出的模态框还是保存上次添加的记录，避免重复添加。
+            //取出dom对象，调用reset()方法
+            // // $("#empAddModal form")[0].reset();
+            // reset_form("#empAddModal form");
+            //
+            //在弹出模态框之前，需要发送ajax请求，查询部门信息，显示在模态框的下拉列表中
+            getDepts("#empAddModal select");
+
+            //弹出模态框
+            $("#empAddModal").modal({
+                //背景不删除
+                backdrop:"static"
+            });
+        });
+
+        //查出所有部门信息并显示在下拉列表中
+        function getDepts(ele) {
+            //清空下拉菜单信息，如果不清空，当页面刷新的时候新的数据不会覆盖旧数据，造成页面混乱
+            $(ele).empty();
+
+            $.ajax({
+                url:"${APP_PATH}/depts",
+                type:"GET",
+                success:function (res) {
+
+                    //console.log(res);
+
+                    // 点击添加后，最终返回的json字符串是这样的
+                    // {"code":100,"msg":"处理成功!",
+                    //     "extend":{"depts":[{"deptId":1,"deptName":"开发部"},{"deptId":2,"deptName":"测试部"}]}}
+
+                    //遍历部门信息，在下拉列表中显示部门信息
+                    $.each(res.extend.depts, function () {
+                        //在遍历之前
+                        //参照：<option value="1">开发部</option>
+                        //this代表当前正在遍历的元素：部门对象 {"deptId":1,"deptName":"开发部"}
+                        //这个value值是要提交给Employee对象中的deptId赋值的
+                        var optionEle = $("<option></option>").append(this.deptName).attr("value", this.deptId);
+
+                        //将option标签添加到empAddModal下的select标签中
+                        //传入ele参数，调用时只需把对应id作为参数即可
+                        optionEle.appendTo(ele);
+
+                        //将option标签添加到empUpdateModal下的select标签中，用于编辑的模态框
+                        // optionEle.appendTo("#empUpdateModal select");
+                    });
+                }
+            });
+        }
+
+        //模态框中点击保存员工信息
+        $("#emp_save_btn").click(function () {
+            //模态框中填写的表单数据提交给服务器进行保存
+        });
 
     </script>
 </body>

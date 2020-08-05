@@ -3,11 +3,11 @@ package com.sticker.crud.service;
 import com.sticker.crud.bean.Employee;
 import com.sticker.crud.dao.EmployeeMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Repository
+@Service
 public class EmployeeService {
 
 //    service层调用DAO： EmployeeMapper
