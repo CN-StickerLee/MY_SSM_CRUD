@@ -8,15 +8,108 @@ import com.sticker.crud.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 public class EmployeeController {
 
     @Autowired
     EmployeeService employeeService;
+
+    /**
+     * 按照员工id删除
+     * 单个删除和批量删除二合一
+     * 如果是批量删除，每个id之间用-分隔开
+     */
+    @ResponseBody
+    @RequestMapping(value = "/emp/{ids}", method = RequestMethod.DELETE)
+    public Msg deleteEmpById(@PathVariable("ids") String ids){
+//        如果包含-就是批量删除
+        if(ids.contains("-")){
+//            批量删除
+
+            List<Integer> del_ids = new ArrayList<>();
+//            按照-分隔开，转化为String数组
+            String[] str_ids = ids.split("-");
+
+//            组装id的集合
+            for(String s : str_ids){
+                del_ids.add(Integer.parseInt(s));
+            }
+            employeeService.deleteBatch(del_ids);
+        }else{
+//            单个删除
+            Integer id = Integer.parseInt(ids);
+            employeeService.deleteEmp(id);
+        }
+        return Msg.success();
+    }
+
+    /**
+     * 如果直接发送ajax的PUT请求，我们封装的数据为：
+     * Employee
+     *      {empId=1036, empName='null', gender='null', email='null', dId=null, department=null}
+     *      empId=1036有值还是因为路径上/emp/{empId}带了{empId}而获取的
+     * 而在请求头中是有数据的，email=ast12123%40nn.com&gender=M&dId=1
+     *
+     * 问题就在于请求体中有数据，但是Employee对象封装不上：empName='null', gender='null', email='null', dId=null, department=null
+     * 这样的话在mapper文件中SQL语句因为判空，
+     * 最终语句拼接为 update tbl_employee where emp_id = 1014 ，没有set字段，所以sql语法就有问题
+     *
+     * 而封装不上的原因在于tomcat:
+     *      1.tomcat会将请求体中的数据封装为一个map
+     *      2.request.getParameter("empName")就会从这个map中取值
+     *      3.SpringMVC封装POJO对象的时候，会把POJO中每个属性的值调用request.getParameter("email")方法来获取
+     *
+     * AJAX发送PUT请求引发的血案:
+     *      发送PUT请求，请求体中的数据通过request.getParameter("gender")都拿不到
+     *
+     *      这是因为如果AJAX发送PUT请求，tomcat看到是PUT请求，就不会将请求体中的数据封装为map，
+     *      只有POST请求才会封装请求体为map
+     *
+     *解决方案：
+     * 我们要能支持直接发送PUT之类的请求，还要封装请求体中的数据
+     *      在web.xml中配置上HttpPutFormContentFilter过滤器
+     *      他的作用是将请求体中的数据解析包装成map
+     *      request被重新包装，request.getParameter()被重写，就会从自己封装的map中取出数据
+     *
+     * 员工更新方法
+     * @param employee
+     * @return
+     */
+    //value = "/emp/{empId}"这里必须是empId,employee对象的empId才能获取到值
+    @ResponseBody
+    @RequestMapping(value = "/emp/{empId}", method = RequestMethod.PUT)
+    public Msg updateEmp(Employee employee, HttpServletRequest request){
+//        因为AJAX发送PUT请求，tomcat看到是PUT请求，不会将请求体中的数据封装为map，
+//        所以直接通过请求体的getParameter也拿不到数据，为null.
+//        System.out.println("请求体中的gender值：" + request.getParameter("gender"));
+        System.out.println("将要更新的员工数据：" + employee);
+        employeeService.updateEmp(employee);
+        return Msg.success();
+    }
+
+    /**
+     * 按照员工id查询员工信息
+     * @param id
+     * @return
+     */
+//    @PathVariable 从/emp/{id}的访问路径中取出id
+    @RequestMapping(value = "/emp/{id}", method = RequestMethod.GET)
+    @ResponseBody
+    public Msg getEmp(@PathVariable("id") Integer id){
+        Employee employee = employeeService.getEmp(id);
+        return Msg.success().add("emp", employee);
+    }
 
     /**
      * 检验用户名是否可用
@@ -49,18 +142,54 @@ public class EmployeeController {
     }
 
     /**
+     * 如果uri为 /emp/{id} ，请求方式为GET，就查询员工
+     * 如果uri为 /emp ，     请求方式为POST，就保存员工
+     * 如果uri为 /emp/{id} ，请求方式为PUT，就修改员工
+     * 如果uri为 /emp/{id} ，请求方式为DELETE，就删除员工
+     */
+    /**
      * 保存员工信息
-     * @param employee
+     * 要支持JSR303，需要导入Hibernate-Validator包
+     *
+     * @Valid注解 :封装对象之后，需要对对象中的数据进行校验 前提：在JavaBean（Employee）中使用注解@Pattern等加上校验规则
+     * BindingResult :封装校验的结果
      * @return
      */
     @ResponseBody
-    //这里也可使用 @PostMapping(value = "/emp")
-    @RequestMapping(value = "/emp",method = RequestMethod.POST)
-    public Msg saveEmp(Employee employee) {
-        //这里要进行非空判断
-        employeeService.saveEmp(employee);
-        return Msg.success();
+    @RequestMapping(value = "/emp", method = RequestMethod.POST)
+    public Msg saveEmp(@Valid Employee employee, BindingResult result){
+        if(result.hasErrors()){
+//            校验失败，在模态框中显示校验失败的错误信息
+            Map<String, Object> map = new HashMap<>();
+            List<FieldError> errors = result.getFieldErrors();
+            for(FieldError fieldError : errors){
+                System.out.println("错误的字段名：" + fieldError.getField());
+                System.out.println("错误信息：" + fieldError.getDefaultMessage());
+                map.put(fieldError.getField(), fieldError.getDefaultMessage());
+            }
+//            把错误信息返回给浏览器
+            return Msg.fail().add("errorField", map);
+        }else{
+//            校验成功
+            employeeService.saveEmp(employee);
+            return Msg.success();
+        }
+
     }
+
+//    /**
+//     * 保存员工信息
+//     * @param employee
+//     * @return
+//     */
+//    @ResponseBody
+//    //这里也可使用 @PostMapping(value = "/emp")
+//    @RequestMapping(value = "/emp",method = RequestMethod.POST)
+//    public Msg saveEmp(Employee employee) {
+//        //这里要进行非空判断
+//        employeeService.saveEmp(employee);
+//        return Msg.success();
+//    }
 
     /**
      *  处理emps请求的新方法，利用AJAX请求实现前后端分离
