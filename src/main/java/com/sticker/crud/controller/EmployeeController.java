@@ -8,9 +8,7 @@ import com.sticker.crud.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -19,6 +17,20 @@ public class EmployeeController {
 
     @Autowired
     EmployeeService employeeService;
+
+    /**
+     * 保存员工信息
+     * @param employee
+     * @return
+     */
+    @ResponseBody
+    //这里也可使用 @PostMapping(value = "/emp")
+    @RequestMapping(value = "/emp",method = RequestMethod.POST)
+    public Msg saveEmp(Employee employee) {
+        //这里要进行非空判断
+        employeeService.saveEmp(employee);
+        return Msg.success();
+    }
 
     /**
      *  处理emps请求的新方法，利用AJAX请求实现前后端分离

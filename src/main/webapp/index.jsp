@@ -55,7 +55,7 @@
                     <div class="form-group">
                         <label class="col-sm-2 control-label">email</label>
                         <div class="col-sm-10">
-                            <input type="text" name="email" class="form-control" id="email_add_input" placeholder="email@gmail.com">
+                            <input type="text" name="email" class="form-control" id="email_add_input" placeholder="email@126.com">
                             <span class="help-block"></span>
                         </div>
                     </div>
@@ -396,17 +396,116 @@
                         //传入ele参数，调用时只需把对应id作为参数即可
                         optionEle.appendTo(ele);
 
-                        //将option标签添加到empUpdateModal下的select标签中，用于编辑的模态框
-                        // optionEle.appendTo("#empUpdateModal select");
                     });
                 }
             });
         }
 
         //模态框中点击保存员工信息
+        //模态框中填写的表单数据提交给服务器进行保存
         $("#emp_save_btn").click(function () {
-            //模态框中填写的表单数据提交给服务器进行保存
+            //1.需要先对提交给服务器的数据进行校验
+            //如果校验失败，直接返回
+            if(!validate_add_form()){
+                return false;
+            }
+            //2.发送ajax请求保存员工信息
+            $.ajax({
+                url:"${APP_PATH}/emp",
+                type:"POST",
+                data:$("#empAddModal form").serialize(),
+                success:function (result) {
+                    //下面的msg对应的是Msg对象中的msg
+                    //alert(result.msg);
+                    //员工保存成功
+                    //1.关闭模态框
+                    $("#empAddModal").modal('hide');
+                    //2.显示最后一页，展示刚才保存的数据
+                    to_page(totalRecordCount);
+                }
+            });
         });
+//====================================校验============================================================
+
+        //校验方法，判断用员工名和邮箱格式是否正确
+        function validate_add_form(){
+
+            // $("#empName_add_input").parent().removeClass("has-success has-error");
+            // $("#empName_add_input").next("span").text("");
+            // $("#email_add_input").parent().removeClass("has-success has-error");
+            // $("#email_add_input").next("span").text("");
+
+            // 拿到要校验的数据，使用正则表达式
+            var empName = $("#empName_add_input").val();
+            //允许数字字母以及_-，6-16位或者中文2-5个
+            var regName = /(^[a-zA-Z0-9_-]{6,16}$)|(^[\u2E80-\u9FFF]{2,5})/;
+            //1、校验用户名
+            //注意每次判断后，都需要去除掉前面的样式，否则或造成样式叠加
+            if(!regName.test(empName)){
+                //失败
+
+                // alert("用户名必须是6-16位数字，字母或者_-，也可以是2-5位中文组成");
+
+                //添加错误样式到输入框
+                // $("#empName_add_input").parent().addClass("has-error");
+                //给empName_add_input所在标签的下一个span标签加上文本
+                // $("#empName_add_input").next("span").text("用户名必须是6-16位数字，字母或者_-，也可以是2-5位中文组成");
+
+                show_validate_msg("#empName_add_input", "error", "用户名必须是6-16位数字，字母或者_-，也可以是2-5位中文组成");
+                return false;
+            }else{
+                //成功
+
+                // $("#empName_add_input").parent().addClass("has-success");
+                // $("#empName_add_input").next("span").text("");
+                // console.log("1");
+
+                show_validate_msg("#empName_add_input", "success", "");
+            }
+
+            //2、校验邮箱
+            var email = $("#email_add_input").val();
+            var regEmail = /^([a-z0-9_\.-]+)@([\da-z\.-]+)\.([a-z\.]{2,6})$/;
+            if(!regEmail.test(email)){
+                // alert("邮箱格式不正确!");
+
+                // $("#email_add_input").parent().addClass("has-error");
+                // $("#email_add_input").next("span").text("邮箱格式不正确!");
+
+                show_validate_msg("#email_add_input", "error", "邮箱格式不正确!");
+                return false;
+            }else{
+                // $("#email_add_input").parent().addClass("has-success");
+                // $("#email_add_input").next("span").text("");
+
+                show_validate_msg("#email_add_input", "success", "");
+            }
+
+            //员工名和邮箱格式全部正确才返回true
+            return true;
+        }
+
+        //校验的相关代码都一样，因此抽取成为一个方法  这里将校验结果的提示信息全部抽取出来
+        //参数：校验的元素，状态，校验信息
+        function show_validate_msg(ele, status, msg) {
+            // 当一开始输入不正确的用户名之后，会变红。
+            // 但是之后输入了正确的用户名却不会变绿，
+            // 因为has-error和has-success样式叠加了。
+            // 所以每次校验的时候都要清除当前元素的校验状态。
+            $(ele).parent().removeClass("has-success has-error");
+            //提示信息默认为空
+            $(ele).next("span").text("");
+
+            if("success" == status){
+                //如果校验成功
+                $(ele).parent().addClass("has-success");
+                $(ele).next("span").text(msg);
+            }else if("error" == status){
+                //如果校验失败
+                $(ele).parent().addClass("has-error");
+                $(ele).next("span").text(msg);
+            }
+        }
 
     </script>
 </body>

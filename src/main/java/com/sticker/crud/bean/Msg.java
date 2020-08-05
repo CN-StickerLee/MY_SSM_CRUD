@@ -16,6 +16,7 @@ public class Msg {
 //    用户要返回给浏览器的数据
     private Map<String, Object> extend = new HashMap<String, Object>();
 
+    //这里设置为静态，是方便直接通过类名Msg来调用
     public static Msg success(){
         Msg res = new Msg();
         res.setCode(100);
