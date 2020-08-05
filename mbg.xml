@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+
+    <context id="DB2Tables" targetRuntime="MyBatis3">
+
+<!--        文件中的注释生成：以下设置表示不生成注释-->
+        <commentGenerator>
+            <property name="suppressAllComments" value="true"/>
+        </commentGenerator>
+
+<!--        配置数据库连接信息-->
+        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"
+                        connectionURL="jdbc:mysql://localhost:3306/MY_SSM_CRUD?serverTimezone=UTC"
+                        userId="root"
+                        password="myroot">
+        </jdbcConnection>
+
+<!--        java类型解析，默认即可-->
+        <javaTypeResolver >
+            <property name="forceBigDecimals" value="false" />
+        </javaTypeResolver>
+
+<!--        指定javaBean生成的位置-->
+<!--        因为老师用的是windows系统，所以路径是用"\"，如果有mac的同志(比如我)，那么要改为"/"。
+            关键是打错了不会报错，只是不会生成任何文件，所以记得检查。-->
+<!--        targetPackage指定包名/文件夹名  targetProject指定工程路径 -->
+<!--        这里targetProject=".\src\main\java"     用的是基于mbg.xml自身的相对路径-->
+        <javaModelGenerator targetPackage="com.sticker.crud.bean" targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+            <property name="trimStrings" value="true" />
+        </javaModelGenerator>
+
+
+<!--        指定sql映射文件生成的位置-->
+        <sqlMapGenerator targetPackage="mapper"  targetProject=".\src\main\resources">
+            <property name="enableSubPackages" value="true" />
+        </sqlMapGenerator>
+
+
+<!--        指定dao接口生成的位置，mapper接口-->
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.sticker.crud.dao"  targetProject=".\src\main\java">
+            <property name="enableSubPackages" value="true" />
+        </javaClientGenerator>
+
+
+<!--        指定每个表的生成策略   -->
+<!--        一个table指定一张表的生成策略 比如这个表对应哪个JavaBean-->
+        <table tableName="tbl_emp" domainObjectName="Employee"></table>
+        <table tableName="tbl_dept" domainObjectName="Department"></table>
+ 
+    </context>
+</generatorConfiguration>
